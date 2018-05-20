@@ -1,0 +1,324 @@
+// Sparkfun Microview & Adafdruit MCP9808 & DS1307 (w/ 18B20) RTC based thermostat
+
+#define DEBUG false
+#define USE_18B20 true
+#define USE_TIME true
+
+#include <TimeLib.h>
+#include <MicroView.h>
+
+#ifdef USE_18B20
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#define ONE_WIRE_BUS 2   // Dallas 18B20 Temp Sensor (on RTC) is on UNO pin 2 = MicroView pin 11!
+OneWire oneWire(ONE_WIRE_BUS); // controller for all OneWire devices - incl 18B20
+DallasTemperature oneWireSensors(&oneWire); // Pass our oneWire reference to Dallas Temperature
+#endif
+
+#ifdef USE_TIME
+#include <Wire.h>
+#include <DS1307.h> // www.dfrobot.com/wiki/index.php/Real_Time_Clock_Module_(DS1307)_V1.1_(SKU:DFR0151)
+int rtc[7];
+#endif
+
+boolean stoveOn = false;
+const int RTCTempInputPin = 2; // UNO pin 5 = MicroView Pin 13! (2=11)
+const int stoveOnPin = 3; // UNO pin 3 = MicroView Pin 12!
+const int StoveDisplayPin = 0; // UNO pin 0 = MicroView Pin 9!
+
+/* Alt scheme for Pins:
+ * - Increase Set Temp
+ * - Decrease Set Temp
+ * - Hold Current Temp Forever 
+ * - Reset
+ */
+const int button3Pin = A3; // MicroView pin 4!
+const int button4Pin = A2; // MicroView pin 5!
+const int button1Pin = A1; // MicroView pin 6!
+const int button2Pin = A0; // MicroView pin 7!
+
+String outputString;
+
+float setTemp = 78.0; // degrees Farenheight
+// To keep stove from cycling off and on too often, set a temp range
+const float minusOffset = 1.8; //Degrees farenheit below setTemp when stove goes on
+const float plusOffset = 1.8; //Degrees farenheit above setTemp when stove goes on
+time_t lastTransition;
+bool proceed;
+
+const float timeOffset[25] = {0,
+    -10.0, -10.0, -10.0, -10.0, -8.0, -4.0,  // 1 AM to 6 AM
+      0.0,   0.0,   0.0,   0.0, -3.0, -5.0,  // 7 AM to Noon
+     -5.0,  -5.0,  -5.0,  -3.0,  0.0,  0.0,  // 1 PM to 6 PM
+      0.0,  -3.0,  -5.0,  -8.0,-10.0,-10.0}; // 7 PM to Midnight
+
+const String Blanks = "             ";
+
+void setup() 
+{
+  Serial.begin(115200); //9600);
+  //while (!Serial) ; // wait for serial
+  //delay(200);
+  Serial.println("John's Sparkfun Microview & DS1307 RTC (+ Dallas DS18B20 thermometer) based thermostat");
+  Serial.println("--------------------------------------------------------------------------------------");
+
+  uView.begin();
+  uView.clear(PAGE);
+  uView.setFontType(0);     // set font type 0, please see declaration in MicroView.cpp
+  uView.setCursor(0,0);
+  uView.println("Seeking oneWire Sensors");
+  uView.display();        // display current page buffer
+
+#ifdef USE_18B20
+  // Start up the Dallas 18B20 Temp Sensor (on RTC) library
+  oneWireSensors.begin();
+#endif
+
+#ifdef USE_TIME
+  RTC.get(rtc,true);
+  if (false) //if(rtc[6]<18) // if year < 2018
+  { 
+    Serial.println("Manually resetting RTC Clock with hardcoded values!");
+    RTC.stop();
+    RTC.set(DS1307_SEC,0);
+    RTC.set(DS1307_MIN,0);
+    RTC.set(DS1307_HR,9);
+    RTC.set(DS1307_DOW,2); // DayOfWeek (1=Sun, 7=Sat)
+    RTC.set(DS1307_DATE,5);
+    RTC.set(DS1307_MTH,2);
+    RTC.set(DS1307_YR,18);
+    RTC.start();
+  }
+  lastTransition = now();
+  #endif
+
+  uView.display();        // display current page buffer 
+  delay(1000);
+
+  pinMode(stoveOnPin, OUTPUT);      // sets the digital pin as output
+  pinMode(StoveDisplayPin, OUTPUT);      // sets the digital pin as output
+
+  pinMode(RTCTempInputPin,INPUT);
+  
+  pinMode(button1Pin,INPUT_PULLUP);  //or INPUT_PULLUP: www.arduino.cc/reference/en/language/variables/constants/constants/
+  pinMode(button2Pin,INPUT_PULLUP);
+  pinMode(button3Pin,INPUT_PULLUP);
+  pinMode(button4Pin,INPUT_PULLUP);
+} // setup
+
+
+
+void loop() 
+{
+  outputString="";
+
+  #ifdef USE_18B20
+  //From Dallas DS18B20 Temp Sensor (on RTC)  
+  // call oneWireSensors.requestTemperatures() to issue a global temperature 
+    // request to all devices on the bus
+    if (DEBUG)
+    {
+      Serial.print("Requesting temperatures...");
+    }
+    oneWireSensors.requestTemperatures(); // Send the command to get temperatures
+    
+    //delay (500);
+
+    float c = oneWireSensors.getTempCByIndex(0);
+    float f = c * 9.0 / 5.0 + 32.0;
+
+  #endif
+  
+  if (DEBUG)
+  {
+    Serial.print("DS18B20: " + String(c) + "°C");
+    Serial.print("DS18B20: " + String(f) + "°F");
+  }
+
+  if (USE_TIME) 
+  {
+    int i;
+    RTC.get(rtc,true);
+
+    if (DEBUG)
+    {
+      for(i=0; i<7; i++)
+      {
+        Serial.print(rtc[i]);
+        Serial.print(" ");
+      }
+      Serial.println();
+      
+      // Check incoming Serial for new time & date: unknown format, but CR seperated
+      if (Serial.available() > 6) 
+      {
+        byte rr[7];
+        for(i=0;i<7;i++)
+        {
+          rr[i]=BCD2DEC(Serial.read());
+        }
+        Serial.println("SET TIME:");
+        RTC.stop();
+        RTC.set(DS1307_SEC,rr[6]);
+        RTC.set(DS1307_MIN,rr[5]);
+        RTC.set(DS1307_HR,rr[4]);
+        RTC.set(DS1307_DOW,rr[3]);
+        RTC.set(DS1307_DATE,rr[2]);
+        RTC.set(DS1307_MTH,rr[1]);
+        RTC.set(DS1307_YR,rr[0]); //DS1307_BASE_YR 2000
+        RTC.start();
+      }
+    } //DEBUG
+    
+    // following is formatted for the MicroView - Not the serial monitor!
+    outputString  = String(dayShortStr(rtc[DS1307_DOW])).substring(0,2); //1st 2 letters of weekday
+    outputString += String(rtc[DS1307_HR])  + ":";
+    if (rtc[DS1307_MIN] < 10) outputString  += "0";
+    outputString += String(rtc[DS1307_MIN]) + ":";
+    if (rtc[DS1307_SEC] < 10) outputString  += "0";
+    outputString += String(rtc[DS1307_SEC]);
+    if (outputString.length() < 10) outputString += "\n";
+    outputString += Blanks.substring(0,6 - String(rtc[DS1307_MTH]).length() - String(rtc[DS1307_DATE]).length() );
+    outputString += String(rtc[DS1307_MTH]) + "/" + String(rtc[DS1307_DATE]) + "/" + String(rtc[DS1307_YR]-DS1307_BASE_YR);
+  } //USE_TIME
+  
+  
+  outputString += "Temp" + Blanks.substring(0,6 - String(timeOffset[rtc[DS1307_HR]]).length());
+  outputString+=String(timeOffset[rtc[DS1307_HR]]);
+  outputString+="Cur: " + String(f) + "Set: " + String(setTemp);
+  
+
+  Serial.println(" secs: " + String(numberOfSeconds(now()-lastTransition)));
+
+
+  if (numberOfSeconds(now()-lastTransition)<180)
+  {
+    // Hold off on any transitions for a couple minutes, to avoid stove rapidly turning off & on
+    proceed = false;
+    outputString += "~";  //i.e., transition recently made, hold off on another
+  }
+  else
+  {
+    proceed = true;
+    outputString += " ";
+  }  
+  
+  if (f<setTemp-minusOffset+timeOffset[rtc[DS1307_HR]])
+  {
+    if (proceed && !stoveOn)
+    {
+      Serial.println(" TRANSITION TO ON");
+      lastTransition = now();
+      stoveOn=true;
+      digitalWrite(stoveOnPin, HIGH);   // Turn on Stove!
+      analogWrite(StoveDisplayPin, 300);
+    }
+    outputString += " Stove On";
+  }
+  else
+  {
+    if (f>setTemp+plusOffset+timeOffset[rtc[DS1307_HR]])
+    {
+      if (proceed && stoveOn)
+      {
+        Serial.println(" TRANSITION TO OFF");
+        lastTransition = now();
+        stoveOn=false;
+        digitalWrite(stoveOnPin, LOW);   // Turn off Stove!
+        analogWrite(StoveDisplayPin, 3);
+      }
+      outputString += "Stove Off";
+    }
+    else
+    {
+      if (proceed)
+      {
+        // temperature is just right!
+        // digitalWrite(stoveOnPin, LOW);   // Maybe enough to turn on LED real dim!
+        // analogWrite(StoveDisplayPin, 20);
+      }
+      outputString += " Main:";
+      if (stoveOn)
+        outputString += " on";
+      else
+        outputString += "off";
+    }
+  }
+
+  
+  uView.clear(PAGE);
+  Serial.println(outputString);
+  uView.setCursor(0,0);
+  uView.println(outputString);
+  uView.display();        // display current page buffer
+
+
+   while (digitalRead(button4Pin)==LOW)
+  {
+    //Quickly lower Set Temp
+    outputString="Set Temp =     " + String(setTemp-=1.0);
+    Serial.println(outputString);
+    uView.setCursor(0,0);
+    uView.println(outputString);
+    uView.display();
+    delay (500);
+  }  
+  
+  while (digitalRead(button3Pin)==LOW)
+  {
+    outputString="Set Temp =     " + String(setTemp-=0.1);
+    Serial.println(outputString);
+    uView.setCursor(0,0);
+    uView.println(outputString);
+    uView.display();
+    delay (300);
+  }
+
+  while (digitalRead(button2Pin)==LOW)
+  {
+    outputString="Set Temp =     " + String(setTemp+=0.1);
+    Serial.println(outputString);
+    uView.setCursor(0,0);
+    uView.println(outputString);
+    uView.display();
+    delay (300);
+  }
+  
+   while (digitalRead(button1Pin)==LOW)
+  {
+    outputString="Set Temp =     " + String(setTemp+=1.0);
+    Serial.println(outputString);
+    uView.setCursor(0,0);
+    uView.println(outputString);
+    uView.display();
+    delay (500);
+  }
+
+  // Check Battery Voltage
+  // readBatVcc();  // currently relies on A1
+
+
+  Serial.println("---------------------------\n");
+  delay(1000); 
+} // loop
+
+
+
+char BCD2DEC(char var)
+{
+  if (var>9){
+     var=(var>>4)*10+(var&0x0f);
+  }
+  return var;
+}
+
+// Termo\_Works\tinyrtc with ds12b20 temp chip\DFRobot\DFRobot - 
+// Arduino library\DS1307\examples\TinyRTC_Test_V13\TinyRTC_Test_V13.ino
+int sensorValue = 0;        // value read from the pot
+float TT=0.0;
+void readBatVcc(void){
+    sensorValue = 0;        // value read from the pot
+    sensorValue = analogRead(A1);
+    TT = sensorValue*0.0047;
+    Serial.println("Backup Vcc: " + String(TT) + "Volts");
+}
