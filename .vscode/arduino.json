@@ -1,5 +1,5 @@
 {
-    "board": "arduino:avr:uno",
-    "port": "COM6",
+    "board": "arduino:avr:unowifi",
+    "port": "COM7",
     "sketch": "_HouseThermo.ino"
 }

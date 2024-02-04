@@ -3,9 +3,7 @@
 #define DEBUG false
 #define USE_18B20 true
 #define USE_TIME true
-#define MANUAL_RTC_RESET false // set to true for ONE run only (and edit the date values below), then revert to true so date isn't reset after ever power on!
 
-#include <Arduino.h> //for intellisense
 #include <TimeLib.h>
 #include <MicroView.h>
 
@@ -23,10 +21,10 @@ DallasTemperature oneWireSensors(&oneWire); // Pass our oneWire reference to Dal
 int rtc[7];
 #endif
 
-boolean stoveOn = false;
+boolean StoveOn = false;
 const int RTCTempInputPin = 2; // UNO pin 5 = MicroView Pin 13! (2=11)
-const int stoveOnPin = 3; // UNO pin 3 = MicroView Pin 12!
-const int StoveDisplayPin = 0; // UNO pin 0 = MicroView Pin 9!
+const int StoveOnPin = 3; // UNO pin 3 = MicroView Pin 12!
+const int StoveOffPin = 0; // UNO pin 0 = MicroView Pin 9!
 
 /* Alt scheme for Pins:
  * - Increase Set Temp
@@ -41,18 +39,10 @@ const int button2Pin = A0; // MicroView pin 7!
 
 String outputString;
 
-float setTemp = 72.0; // degrees Farenheight
+float setTemp = 78.0; // degrees Farenheight
 // To keep stove from cycling off and on too often, set a temp range
-const float minusOffset = 1.8; //Degrees farenheit below setTemp when stove goes on
-const float plusOffset = 1.8; //Degrees farenheit above setTemp when stove goes on
-time_t lastTransition;
-bool proceed;
-
-const float timeOffset[25] = {0,
-    -15.0, -15.0, -15.0, -15.0, -12.0,   -5.0,  // 1 AM to 6 AM
-     -2.0,   0.0,   0.0,  -1.0,  -3.0,   -4.0,  // 7 AM to Noon
-     -3.0,  -3.0,  -3.0,  -2.0,   0.0,    0.0,  // 1 PM to 6 PM
-     -1.0,  -4.0,  -7.0,  -10.0, -12.0, -12.0}; // 7 PM to Midnight
+const float minusOffset = 2.0; //Degrees farenheit below setTemp when stove goes on
+const float plusOffset = 2.0; //Degrees farenheit above setTemp when stove goes on
 
 const String Blanks = "             ";
 
@@ -77,40 +67,27 @@ void setup()
 #endif
 
 #ifdef USE_TIME
-  Serial.println("Get Date and Time from RTC");
   RTC.get(rtc,true);
-  Serial.println("RTC Clock has year as " + String(rtc[DS1307_YR]));
-  // If the RTC needs to be reset, edit the current date/time below.
-  // Also TEMPORARILY (for one run) set year on next line to something bigger than the current year, 
-  // which will force the following section to run. 
-  // ALWAYS return the year to the current year (2018 or whatever), 
-  // otherwise every power reset will reset the RTC back to the hardcoded date below!!!
-  //#if (MANUAL_RTC_RESET)
-  {
-    if(rtc[DS1307_YR]<2018)
-    { 
-      Serial.println("RTC Clock had year as " + String(rtc[DS1307_YR]));
-      Serial.println("Manually reseting RTC with hardcoded values.");
-      RTC.stop();
-      RTC.set(DS1307_SEC,0);
-      RTC.set(DS1307_MIN,40);
-      RTC.set(DS1307_HR,10);
-      RTC.set(DS1307_DOW,5); // DayOfWeek (1=Sun, 7=Sat)
-      RTC.set(DS1307_DATE,13);
-      RTC.set(DS1307_MTH,3);
-      RTC.set(DS1307_YR,19);
-      RTC.start();
-    }
+  if (true) //if(rtc[6]<18) // if year < 2018
+  { 
+    Serial.println("Manually resetting RTC Clock with hardcoded values!");
+    RTC.stop();
+    RTC.set(DS1307_SEC,0);
+    RTC.set(DS1307_MIN,15);
+    RTC.set(DS1307_HR,22);
+    RTC.set(DS1307_DOW,1); // DayOfWeek (1=Sun, 7=Sat)
+    RTC.set(DS1307_DATE,21);
+    RTC.set(DS1307_MTH,1);
+    RTC.set(DS1307_YR,18);
+    RTC.start();
   }
-  //#endif
-  lastTransition = now();
   #endif
 
   uView.display();        // display current page buffer 
-  delay(500);
+  delay(1000);
 
-  pinMode(stoveOnPin, OUTPUT);      // sets the digital pin as output
-  pinMode(StoveDisplayPin, OUTPUT);      // sets the digital pin as output
+  pinMode(StoveOnPin, OUTPUT);      // sets the digital pin as output
+  pinMode(StoveOffPin, OUTPUT);      // sets the digital pin as output
 
   pinMode(RTCTempInputPin,INPUT);
   
@@ -171,7 +148,6 @@ void loop()
         {
           rr[i]=BCD2DEC(Serial.read());
         }
-        // Main place to (re)set the RTC is above, not here
         Serial.println("SET TIME:");
         RTC.stop();
         RTC.set(DS1307_SEC,rr[6]);
@@ -192,73 +168,36 @@ void loop()
     outputString += String(rtc[DS1307_MIN]) + ":";
     if (rtc[DS1307_SEC] < 10) outputString  += "0";
     outputString += String(rtc[DS1307_SEC]);
-    if (outputString.length() < 10) outputString += "\n";
+    if (outputString.length() < 10) outputString += "/n";
     outputString += Blanks.substring(0,6 - String(rtc[DS1307_MTH]).length() - String(rtc[DS1307_DATE]).length() );
     outputString += String(rtc[DS1307_MTH]) + "/" + String(rtc[DS1307_DATE]) + "/" + String(rtc[DS1307_YR]-DS1307_BASE_YR);
   } //USE_TIME
   
   
-  outputString += "Temp" + Blanks.substring(0,6 - String(timeOffset[rtc[DS1307_HR]]).length());
-  outputString+=String(timeOffset[rtc[DS1307_HR]]);
-  outputString+="Cur: " + String(f) + "Set: " + String(setTemp);
-  
-  if (DEBUG)
-  {
-    Serial.println(" secs: " + String(numberOfSeconds(now()-lastTransition)));
-  }
 
-
-  if (numberOfSeconds(now()-lastTransition)<180)
+  outputString+="      TempCur: " + String(f) + "Set: " + String(setTemp);
+  if (f<setTemp-minusOffset)
   {
-    // Hold off on any transitions for 3 minutes (180 seconds), to avoid stove rapidly turning off & on
-    proceed = false;
-    outputString += "~";  //i.e., transition recently made, hold off on another
+    StoveOn=true;
+    analogWrite(StoveOnPin, 25);   // Turn on Stove!
+    digitalWrite(StoveOffPin, LOW);
+    outputString += "  Stove On";
   }
   else
   {
-    proceed = true;
-    outputString += " ";
-  }  
-  
-  if (f<setTemp-minusOffset+timeOffset[rtc[DS1307_HR]])
-  {
-    if (proceed && !stoveOn)
+    if (f>setTemp+plusOffset)
     {
-      Serial.println(" TRANSITION TO ON");
-      lastTransition = now();
-      stoveOn=true;
-      digitalWrite(stoveOnPin, HIGH);   // Turn on Stove!
-      analogWrite(StoveDisplayPin, 300);
-    }
-    outputString += " Stove On";
-  }
-  else
-  {
-    if (f>setTemp+plusOffset+timeOffset[rtc[DS1307_HR]])
-    {
-      if (proceed && stoveOn)
-      {
-        Serial.println(" TRANSITION TO OFF");
-        lastTransition = now();
-        stoveOn=false;
-        digitalWrite(stoveOnPin, LOW);   // Turn off Stove!
-        analogWrite(StoveDisplayPin, 3);
-      }
-      outputString += "Stove Off";
+      StoveOn=false;
+      digitalWrite(StoveOnPin, LOW);   // Turn off Stove!
+      analogWrite(StoveOffPin, 10);
+      outputString += " Stove Off";
     }
     else
     {
-      if (proceed)
-      {
-        // temperature is just right!
-        // digitalWrite(stoveOnPin, LOW);   // Maybe enough to turn on LED real dim!
-        // analogWrite(StoveDisplayPin, 20);
-      }
-      outputString += " Main:";
-      if (stoveOn)
-        outputString += " on";
-      else
-        outputString += "off";
+      // temperature is just right!
+      analogWrite(StoveOnPin, 2);   // Real dim!
+      digitalWrite(StoveOffPin, LOW);
+      outputString += "  Maintain";
     }
   }
 
@@ -315,10 +254,7 @@ void loop()
   // readBatVcc();  // currently relies on A1
 
 
-  if (DEBUG)
-  {
-    Serial.println("---------------------------\n");
-  }
+  Serial.println("---------------------------\n");
   delay(1000); 
 } // loop
 
