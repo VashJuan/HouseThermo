@@ -1,0 +1,620 @@
+/**
+ * @file thermo.ino
+ * @url https://github.com/vashjuan/M5Dial_thermo
+ * @author John Cornelison (john@vashonSoftware.com)
+ * @brief M5Dial thermo
+ * @version 2.0.0
+ * @date 2025-12-18
+ *
+ *
+/**
+ * @Hardware:  M5Dial
+ *               (https://m5stack.com/products/m5dial)
+ *               which uses the M5StampS3 as the controller
+ *               (https://shop.m5stack.com/products/m5stamp-esp32s3-module)
+ *               https://docs.m5stack.com/en/arduino/m5stamps3/program
+ *             + Adafruit MCP9808 Precision I2C Temperature Sensor
+ *               (http://www.adafruit.com/products/1782)
+ *             + Grove-Wio-E5 Wireless Module - STM32WLE5JC, ARM Cortex-M4 and SX126x; EU868 & US915LoRaWAN
+ *               (https://www.seeedstudio.com/Grove-LoRa-E5-STM32WLE5JC-p-4867.html)
+ * @Platform Version: Arduino M5Stack Board Manager v2.0.7
+ * @Dependent Library:
+ * M5GFX: https://github.com/m5stack/M5GFX
+ * M5Unified: https://github.com/m5stack/M5Unified
+ * Adafruit_MCP9808: https://github.com/adafruit/Adafruit_MCP9808_Library
+ *
+ * M5StampS3A, is an update to the M5Stamp S3 ESP32-S3 module introduced in 2023 with
+ * an optimized antenna design, lower power consumption, a larger user button, and
+ * a different logic for the RGB LED control.
+ * - https://www.cnx-software.com/2025/07/11/m5stack-stamp-s3a-wifi-and-ble-iot-module-benefits-from-optimized-antenna-design-lower-power-consumption/
+ **/
+// System includes must be first
+#include <M5Unified.h>
+#include <esp_task_wdt.h>
+
+#include "secrets.h"
+#include "encoder.hpp"
+#include "rtc.hpp"
+#include "temp_sensor.hpp"
+#include "stove.hpp"
+#include "display.hpp"
+#include "lora_transmitter.hpp"
+
+// Forward declarations for button handlers
+void handleButtonPress();
+void handleButtonRelease();
+
+// LoRa transmitter instance and configuration
+LoRaTransmitter loraTransmitter;
+LoRaWANConfig loraConfig;
+
+void setupLoRaConfig()
+{
+    loraConfig.mode = LoRaCommunicationMode::P2P;
+    loraConfig.appEUI = LORAWAN_APP_EUI;
+    loraConfig.appKey = LORAWAN_APP_KEY;
+    loraConfig.region = LORAWAN_REGION_US915;
+    loraConfig.dataRate = 3; // LORAWAN_DR_MEDIUM equivalent
+    loraConfig.adaptiveDataRate = true;
+    loraConfig.transmitPower = 14;
+}
+
+// LoRa module pins for M5Dial Port B (Grove connector: GND, 5V, Out(G2), In(G1))
+const int LORA_RX_PIN = 1; // M5Dial Port B GPIO1 (IN) ← Grove-Wio-E5 TX
+const int LORA_TX_PIN = 2; // M5Dial Port B GPIO2 (OUT) → Grove-Wio-E5 RX
+
+// Activity tracking variables
+static uint32_t lastActivityTime = millis();
+bool recentActivity = false;
+int activityTimeout = 3000; // 3 seconds
+
+// Temperature monitoring constants
+static const unsigned long TEMP_POLL_INTERVAL = 2 * 60 * 1000;   // 2 minutes in milliseconds
+static const unsigned long TEMP_POLL_ACTIVE_INTERVAL = 5 * 1000; // 5 seconds when active
+static unsigned long lastTempPoll = 0;
+static bool deepPowerSaveMode = false;
+
+/**
+ * per https://docs.m5stack.com/en/core/M5Dial#pinmap:
+ * https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/684/S007_PinMap_01.jpg
+ *  White: M5Dial pins G15 SCL (serial clock) (for Port A) & G1 (for Port B)
+ *  Yellow: M5Dial pins G13 SDA (serial data) (for Port A) & G2 (for Port B)
+ *  Red: 5 volts
+ *  Black: ground
+ */
+const int portA[] = {15, 13}; // G15 = SCL, G13 = SDA
+const int portB[] = {1, 2};   // G1 = SCL, G2 = SDA
+
+// MCP9808 uses I2C communication
+
+int updateTime()
+{
+    rtc.update();
+    String formattedTime = rtc.getFormattedDate();
+
+    // Check if we have a valid time or if RTC is still initializing
+    if (formattedTime.startsWith("RTC not") || formattedTime.startsWith("Time unavailable"))
+    {
+        display.showText(TIME, "Initializing clock...");
+
+        // Show error message but don't attempt WiFi reconnection to prevent watchdog timeout
+        static bool errorMessageShown = false;
+        if (!errorMessageShown)
+        {
+            display.showText(STATUS_AREA, "Clock not synced - restart device");
+            errorMessageShown = true;
+        }
+
+        return -1; // Invalid time, return error code
+    }
+
+    // Clear any previous error messages
+    static bool errorCleared = false;
+    if (!errorCleared)
+    {
+        display.showText(STATUS_AREA, "");
+        errorCleared = true;
+    }
+
+    display.showText(TIME, formattedTime);
+    return rtc.getDayOfWeek() * 24 + rtc.getHour(); // hour of the week
+}
+
+float updateTemperature()
+{
+    float temperature = tempSensor.readTemperatureFahrenheit();
+
+    if (!tempSensor.isValidReading(temperature))
+    {
+        Serial.println("Invalid temperature reading");
+        display.showText(STATUS_AREA, "Temperature Sensor Error");
+        return 999.0;
+    }
+
+    // Serial.printf("Temperature: %.2f°F\n", temperature);
+    display.showText(TEMP, String(temperature, 1) + " F");
+
+    return temperature;
+}
+
+// Translate LoRa responses to human-readable messages
+String translateLoRaStatus(const String &loraResponse)
+{
+    if (loraResponse == "STOVE_OFF_ACK")
+    {
+        return "Stove off \u263A"; // ☺
+    }
+    else if (loraResponse == "STOVE_ON_ACK")
+    {
+        return "Stove on \u263A"; // ☺
+    }
+    else if (loraResponse == "TIMEOUT" || loraResponse.length() == 0)
+    {
+        return "No response \u2639"; // ☹
+    }
+    else if (loraResponse.startsWith("TIMEOUT") || loraResponse.indexOf("Failed") >= 0)
+    {
+        return "Error \u2639"; // ☹
+    }
+    else if (loraResponse == "No transmitter")
+    {
+        return "LoRa disabled";
+    }
+    else
+    {
+        // For other responses, show a shortened version
+        return "OK \u263A"; // ☺
+    }
+}
+
+bool updateStove(float temperature, int hourOfWeek, bool manualToggleRequested = false)
+{
+    // Handle manual toggle request
+    if (manualToggleRequested)
+    {
+        String statusText = stove.toggleManualOverride(temperature);
+
+        // Give audio feedback for safety override (non-blocking)
+        if (statusText == "OFF (Safety)")
+        {
+            M5.Speaker.tone(4000, 100);
+            M5.Speaker.tone(4000, 100);
+        }
+
+        // Manual toggle - show the manual state in STOVE area
+        display.showText(STOVE, statusText);
+    }
+    else
+    {
+        // Run automatic temperature control logic (don't use return value for display)
+        stove.update(temperature, hourOfWeek);
+
+        // Display is handled separately in the periodic update blocks below
+    }
+
+    return (stove.getState() == STOVE_ON);
+}
+
+void setup()
+{
+    // Configure watchdog timer for longer timeout (ESP32-S3 compatible)
+    esp_task_wdt_init(30, true); // 30 second timeout, panic on timeout
+    esp_task_wdt_add(NULL);      // Add current task to watchdog
+
+    auto cfg = M5.config();
+    M5.begin(cfg);
+
+    // Serial must be initialized AFTER M5.begin() for ESP32-S3 USB-CDC
+    Serial.begin(115200);
+    delay(100); // Give serial time to initialize
+
+    // Ensure WiFi is initially disabled to prevent background operations
+    WiFi.mode(WIFI_OFF);
+    yield(); // Feed watchdog
+
+    display.setup();
+    display.showSplashScreen();
+    yield(); // Feed watchdog
+
+    Serial.print("Setting up encoder...");
+    display.showText(TIME, "Setting up (encoder) dial...");
+    delay(250);
+    yield(); // Feed watchdog
+    encoder.setup();
+
+    Serial.println(" and RTC...");
+    display.showText(TIME, "Setting up real time clock...");
+    delay(250);
+    yield(); // Feed watchdog
+    rtc.setup();
+
+    // Initialize temperature sensor
+    yield(); // Feed watchdog
+    if (!tempSensor.setup())
+    {
+        Serial.println("Failed to initialize temperature sensor!\n");
+        display.showText(STATUS_AREA, "Temp Sensor Init Failed.");
+        // Don't block - continue with other setup
+    }
+    else
+    {
+        Serial.printf("Temperature sensor initialized successfully at 0x%02X\n", tempSensor.getI2CAddress());
+        Serial.printf("Current resolution: %s\n\n", tempSensor.getResolutionString());
+    }
+
+    // Initialize stove control (loads configuration from temps.csv)
+    yield(); // Feed watchdog
+    Serial.println("Setting up stove control...");
+    display.showText(STATUS_AREA, "Setting up stove control...");
+    delay(250);
+    yield(); // Feed watchdog
+    stove.setup();
+
+    // Initialize LoRa transmitter (optional)
+    yield(); // Feed watchdog
+    Serial.println("Setting up LoRa transmitter...");
+    display.showText(STATUS_AREA, "Setting up LoRa...");
+    delay(250);
+    yield(); // Feed watchdog
+
+    // Configure LoRa settings
+    setupLoRaConfig();
+
+    if (loraTransmitter.setup(LORA_RX_PIN, LORA_TX_PIN, loraConfig))
+    {
+        stove.setLoRaTransmitter(&loraTransmitter);
+        stove.setLoRaControlEnabled(true);
+
+        // Get current mode for display
+        LoRaCommunicationMode currentMode = loraTransmitter.getCurrentMode();
+        String modeStr = (currentMode == LoRaCommunicationMode::P2P) ? "P2P" : "LoRaWAN";
+
+        Serial.printf("LoRa transmitter initialized successfully in %s mode\n", modeStr.c_str());
+        display.showText(STATUS_AREA, "LoRa ready: " + modeStr);
+    }
+    else
+    {
+        Serial.println("LoRa transmitter initialization failed - continuing without LoRa");
+        display.showText(STATUS_AREA, "LoRa failed - local mode only");
+    }
+    delay(1000); // Show LoRa status for a moment
+
+    // Clear setup message and show ready status
+    display.showText(STATUS_AREA, "System Ready");
+    delay(500); // Brief pause to show ready message
+
+    String now = rtc.getFormattedDate();
+    Serial.println("Setup done at " + now);
+    Serial.println();
+    display.showText(TIME, now);
+
+    // Clear status area for normal operation
+    display.showText(STATUS_AREA, "");
+
+    // Use M5's built-in button handling instead of raw GPIO interrupts
+    // M5Dial button handling is done through M5.update() and M5.BtnA
+    // attachInterrupt(digitalPinToInterrupt(42), buttonPressISR, FALLING);
+    // attachInterrupt(digitalPinToInterrupt(42), buttonReleaseISR, RISING);
+
+    // Note: M5Dial encoder interrupts may be handled internally by M5.Encoder
+    // Button handling will use M5.BtnA with efficient checking
+    Serial.println("Using M5 built-in button handling for optimal responsiveness");
+
+    // Reset activity time so power save mode doesn't trigger immediately
+    lastActivityTime = millis();
+
+    yield(); // Feed watchdog
+}
+
+// M5 button handler functions (more reliable than raw GPIO interrupts)
+void handleButtonPress()
+{
+    recentActivity = true;
+    lastActivityTime = millis();
+
+    Serial.println("Button pressed - resetting base temperature to initial value");
+
+    // Show immediate visual feedback
+    display.showText(STATUS_AREA, "Button pressed!");
+
+    // Reset base temperature to initial loaded value
+    String result = stove.resetBaseTemperature();
+    Serial.println("Base temp reset result: " + result);
+
+    // Update display immediately to show the reset
+    float curTemp = tempSensor.readTemperatureFahrenheit();
+    if (tempSensor.isValidReading(curTemp))
+    {
+        display.showText(TEMP, String(curTemp, 1) + "F");
+        float targetTemp = stove.getCurrentDesiredTemperature();
+        float tempDiff = targetTemp - curTemp;
+        display.showText(STOVE, String(targetTemp, 1) + "F (" + String(tempDiff, 1) + "F)");
+    }
+    display.showText(STATUS_AREA, result);
+}
+
+void handleButtonRelease()
+{
+    recentActivity = true;
+    lastActivityTime = millis();
+    Serial.println("Button released");
+}
+
+// Button interrupt handler (replaces polling)
+void handleButtonInterrupts()
+{
+    // Use M5's built-in button state detection for reliability
+    if (M5.BtnA.wasPressed())
+    {
+        handleButtonPress();
+    }
+
+    if (M5.BtnA.wasReleased())
+    {
+        handleButtonRelease();
+    }
+}
+
+void loop()
+{
+    static const int sleepShort = 1; // 1 second
+    static const int sleepLong = 3;  // sleep-in if no recent activity
+    static long loopCounter = 0;
+    // bool touch_wakeup = true; // Whether to enable touch screen wake-up
+
+    yield(); // Feed watchdog at start of loop
+    M5.update();
+
+    unsigned long currentTime = millis();
+    bool isInactive = (currentTime - lastActivityTime > activityTimeout);
+
+    // Determine temperature poll interval based on activity
+    unsigned long tempPollInterval = isInactive ? TEMP_POLL_INTERVAL : TEMP_POLL_ACTIVE_INTERVAL;
+
+    // Check if it's time for temperature polling
+    bool timeForTempPoll = (currentTime - lastTempPoll >= tempPollInterval);
+
+    // Wake up sensor before temperature reading if needed
+    if (timeForTempPoll && !tempSensor.getAwakeStatus())
+    {
+        tempSensor.wakeUp();
+        delay(10); // Allow sensor to stabilize
+        Serial.println("Temperature sensor woken for periodic poll");
+    }
+
+    // Read current values (time always, temperature only when needed)
+    static int hourOfWeek = updateTime();
+    static float curTemp = 999.0; // Initialize with invalid value
+
+    if (timeForTempPoll)
+    {
+        curTemp = updateTemperature();
+        lastTempPoll = currentTime;
+        Serial.printf("Periodic temperature poll: %.1f°F (interval: %lus)\n",
+                      curTemp, tempPollInterval / 1000);
+    }
+
+    // Skip stove control if time is not yet available
+    if (hourOfWeek < 0)
+    {
+        Serial.println("Waiting for RTC initialization...");
+        delay(100); // Reduced from 1000ms
+        return;
+    }
+
+    // Handle button interrupts (replaces polling)
+    handleButtonInterrupts();
+
+    // Handle encoder rotation to adjust base temperature
+    static long lastEncoderPosition = 0;
+    long currentEncoderPosition = encoder.getPosition();
+    if (currentEncoderPosition != lastEncoderPosition)
+    {
+        long change = currentEncoderPosition - lastEncoderPosition;
+        lastEncoderPosition = currentEncoderPosition;
+        recentActivity = true;
+        lastActivityTime = currentTime; // Reset activity timer
+
+        // Each encoder click adjusts base temp by 0.5°F
+        float adjustment = change * 0.5;
+        float currentBase = stove.getBaseTemperature();
+        float newBase = currentBase + adjustment;
+
+        // Enforce safety limit of 90°F maximum
+        if (newBase > 90.0)
+        {
+            newBase = 90.0;
+            Serial.println("Safety limit: Base temperature capped at 90°F");
+        }
+        else if (newBase < 50.0)
+        {
+            newBase = 50.0; // Minimum reasonable temperature
+            Serial.println("Minimum limit: Base temperature floored at 50°F");
+        }
+
+        stove.setBaseTemperature(newBase);
+        Serial.printf("Encoder adjusted base temperature: %.1f°F (change: %+.1f°F)\n", newBase, adjustment);
+
+        // Update display immediately with immediate feedback
+        display.showText(TEMP, String(curTemp, 1) + "F");
+        float targetTemp = stove.getCurrentDesiredTemperature();
+        float tempDiff = targetTemp - curTemp;
+        display.showText(STOVE, String(targetTemp, 1) + "F (" + String(tempDiff, 1) + "F)");
+        display.showText(STATUS_AREA, "Base: " + String(newBase, 1) + "F");
+    }
+
+    // Update stove status (handles both manual and automatic modes)
+    // Only update if we have a valid temperature reading
+    static bool stoveOn = false;
+    if (tempSensor.isValidReading(curTemp))
+    {
+        stoveOn = updateStove(curTemp, hourOfWeek);
+
+        // Update displays immediately when temperature is polled
+        if (timeForTempPoll)
+        {
+            // Show current temperature
+            display.showText(TEMP, String(curTemp, 1) + "F");
+
+            // Show target temp and diff in STOVE area
+            float targetTemp = stove.getCurrentDesiredTemperature();
+            float tempDiff = targetTemp - curTemp;
+            String stoveState = stove.getStateString();
+
+            if (stoveState.startsWith("PENDING"))
+            {
+                display.showText(STOVE, stoveState);
+            }
+            else
+            {
+                String stoveDisplay = String(targetTemp, 1) + "F (" + String(tempDiff, 1) + "F)";
+                display.showText(STOVE, stoveDisplay);
+            }
+
+            // Show LoRa/networking status in STATUS_AREA
+            String loraStatus = stove.getLastLoRaResponse();
+            if (loraStatus.length() > 0 && loraStatus != "No transmitter")
+            {
+                String humanStatus = translateLoRaStatus(loraStatus);
+                display.showText(STATUS_AREA, humanStatus);
+            }
+            else if (stove.isLoRaControlEnabled())
+            {
+                display.showText(STATUS_AREA, "LoRa: Ready");
+            }
+            else
+            {
+                display.showText(STATUS_AREA, "Local mode");
+            }
+        }
+    }
+
+    // For pending states, update display more frequently to show countdown
+    // Also show detailed temperature information periodically
+    static unsigned long lastDisplayUpdate = 0;
+    static unsigned long loopCounterForDisplay = 0;
+
+    if (millis() - lastDisplayUpdate > (isInactive ? 10000 : 2000))
+    { // Update less frequently when inactive
+        // Update temperature display
+        float displayTemp = curTemp;
+        if (!isnan(displayTemp) && tempSensor.isValidReading(displayTemp))
+        {
+            display.showText(TEMP, String(displayTemp, 1) + "F");
+        }
+
+        // Update stove area with target temp and diff
+        String currentState = stove.getStateString();
+        if (currentState.startsWith("PENDING"))
+        {
+            display.showText(STOVE, currentState);
+        }
+        else if (!isnan(displayTemp) && tempSensor.isValidReading(displayTemp))
+        {
+            float targetTemp = stove.getCurrentDesiredTemperature();
+            float tempDiff = targetTemp - displayTemp;
+            String stoveDisplay = String(targetTemp, 1) + "F (" + String(tempDiff, 1) + "F)";
+            display.showText(STOVE, stoveDisplay);
+        }
+
+        // Update LoRa/networking status in STATUS_AREA
+        String loraStatus = stove.getLastLoRaResponse();
+        if (loraStatus.length() > 0 && loraStatus != "No transmitter")
+        {
+            String humanStatus = translateLoRaStatus(loraStatus);
+            if (isInactive)
+            {
+                humanStatus += " (save)";
+            }
+            display.showText(STATUS_AREA, humanStatus);
+        }
+        else if (stove.isLoRaControlEnabled())
+        {
+            String statusMsg = "LoRa: Ready";
+            if (isInactive)
+            {
+                statusMsg += " (save)";
+            }
+            display.showText(STATUS_AREA, statusMsg);
+        }
+        else
+        {
+            display.showText(STATUS_AREA, "Local mode");
+        }
+
+        lastDisplayUpdate = millis();
+    }
+
+    // Enhanced power saving with periodic temperature monitoring
+    static bool powerSaveMode = false;
+    static unsigned long powerSaveModeStartTime = 0;
+
+    if (isInactive)
+    {
+        if (!powerSaveMode)
+        {
+            setCpuFrequencyMhz(40); // Further reduce CPU frequency when idle
+            powerSaveMode = true;
+            powerSaveModeStartTime = millis();
+            Serial.println(String(loopCounter) + ") Entering power save mode (CPU 40MHz, periodic temp polling)\n");
+        }
+
+        // Put sensor to sleep after temperature reading (if we just polled)
+        if (timeForTempPoll && tempSensor.getAwakeStatus())
+        {
+            delay(100); // Allow any pending operations to complete
+            tempSensor.shutdown();
+            Serial.printf("Temperature sensor was shutdown at %s for 2 minutes...\n", rtc.getFormattedTime().c_str());
+        }
+
+        // Enter deep power save mode after being in power save mode for at least 30 seconds
+        if (!deepPowerSaveMode && (millis() - powerSaveModeStartTime > 30000))
+        {
+            deepPowerSaveMode = true;
+            Serial.println("Entering deep power save mode - for 2 minutes");
+        }
+
+        delay(1000); // Sleep longer between loops when inactive
+    }
+    else
+    {
+        if (powerSaveMode)
+        {
+            setCpuFrequencyMhz(80); // Return to normal power saving frequency
+            powerSaveMode = false;
+            deepPowerSaveMode = false;
+            powerSaveModeStartTime = 0;
+            Serial.println("Exit power save mode (CPU 80MHz) to check temperature");
+        }
+
+        // Ensure sensor is awake during active periods
+        if (!tempSensor.getAwakeStatus())
+        {
+            tempSensor.wakeUp();
+            Serial.println("Temperature sensor woken");
+        }
+    }
+
+    // Note: stove status display is handled inside updateStove()
+    // Note: M5Dial doesn't have PortB, use direct GPIO control\n
+    // For now, just print stove status - actual GPIO control would need specific pin setup
+
+    // Adaptive delay based on power mode
+    if (deepPowerSaveMode)
+    {
+        delay(500); // Longer sleep in deep power save mode
+    }
+    else if (powerSaveMode)
+    {
+        delay(100); // Medium sleep in power save mode
+    }
+    else
+    {
+        delay(50); // Short sleep during active periods
+    }
+
+    // Periodic watchdog feeding at loop end
+    esp_task_wdt_reset();
+
+    loopCounter++;
+}
