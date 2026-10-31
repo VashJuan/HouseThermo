@@ -79,7 +79,7 @@
   safety timeout also turned the relay OFF on its own while the link was down.
   **Next:** OFF test. Wait for ON, then turn the dial below the room temperature and confirm the
   receiver logs `Command executed: Stove turned OFF`. Logging tool:
-  `dual_log.py` (both COM ports, timestamped); recreate it if the scratchpad is gone.
+  `tools/lora_log.py` (both COM ports, timestamped; run with the PlatformIO python).
 - Fixed + flashed 2026-10-30: the schedule used the UTC hour (7–8 h early) → `RTC::getHour()`
   and `getDayOfWeek()` use local time now; hour 0 → the "24 = Midnight" row; DST timezone default.
 - The device's SPIFFS `temps.csv` (base 74 °F) differs from the repo (77 °F). It's in the full
