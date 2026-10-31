@@ -683,14 +683,28 @@ String RTC::formatTime(const struct tm *t)
     return formatted;
 }
 
+// The hardware RTC holds UTC; the schedule needs local time (TZ set by configTzTime)
+static bool getLocalTm(struct tm &lt)
+{
+    time_t now = time(nullptr);
+    localtime_r(&now, &lt);
+    return lt.tm_year >= (2024 - 1900); // false until system time has been set
+}
+
 int RTC::getHour()
 {
+    struct tm lt;
+    if (getLocalTm(lt))
+        return lt.tm_hour;
     auto dt = M5.Rtc.getDateTime();
     return dt.time.hours;
 }
 
 int RTC::getDayOfWeek()
 {
+    struct tm lt;
+    if (getLocalTm(lt))
+        return lt.tm_wday; // 0=Sunday
     auto dt = M5.Rtc.getDateTime();
     // Convert M5 day of week (1=Monday) to standard (0=Sunday)
     return (dt.date.weekDay == 7) ? 0 : dt.date.weekDay;

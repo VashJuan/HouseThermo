@@ -44,3 +44,6 @@ Thumbs.db
 
 # --- PlatformIO
 .pio/
+
+# --- Full ESP32 flash dumps contain Wi-Fi secrets
+legacy/m5dial-firmware-backup/

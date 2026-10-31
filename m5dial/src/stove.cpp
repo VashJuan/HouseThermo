@@ -423,6 +423,8 @@ StoveState Stove::getState() const
 float Stove::getDesiredTemperature(RTC &rtc)
 {
     int currentHour = rtc.getHour();
+    if (currentHour == 0)
+        currentHour = 24; // schedule rows are 1..24, 24 = Midnight
     float adjustment = getTemperatureAdjustment(currentHour);
     return baseTemperature + adjustment;
 }

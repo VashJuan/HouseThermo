@@ -61,6 +61,19 @@
 8. Store the schedule in EEPROM; let the buttons edit it. Debounce the buttons without blocking.
 9. Add the watchdog (`avr/wdt.h`) and make the stove fail off on any fault.
 
+### Next session: M5Dial first (MicroView retired 2026-10-30, kept for future projects)
+
+- **FIRST, safety:** the receiver reports its relay ON (`STOVE_ON_ACK`) while the Dial says
+  OFF (77.6 °F vs a 74 °F target). The Dial ignores the status reply, so it never sends OFF.
+  Make the Dial reconcile with the receiver's reported state. Do this before anything is
+  wired to the stove.
+- Fixed + flashed 2026-10-30: the schedule used the UTC hour (7–8 h early) → `RTC::getHour()`
+  and `getDayOfWeek()` use local time now; hour 0 → the "24 = Midnight" row; DST timezone default.
+- The device's SPIFFS `temps.csv` (base 74 °F) differs from the repo (77 °F). It's in the full
+  flash backup `legacy/m5dial-firmware-backup/` (gitignored: contains Wi-Fi secrets).
+- The 4-key phases below are parked. The firmware the MicroView ran is in
+  `legacy/microview-firmware-backup/`.
+
 ### Phase 5: M5Dial review
 10. Run the same review on `m5dial/` (it's newer and bigger: ~200 KB of source and docs),
     and check that it doesn't carry over bugs #2, #3 and #6. Known so far: the receiver logs

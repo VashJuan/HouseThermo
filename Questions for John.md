@@ -28,3 +28,4 @@
 - ✅ Q8 Cell replaced 2026-10-30; RTC set and running.
 - **Q10** The M5Dial's MCP9808 doesn't answer on I2C (999 °F). Is it plugged in, and is the Grove cable OK?
 - **Q11** Can I flash the M5Dial with the repo build (DST fix)? I'd back up its current flash first.
+- ✅ Q10 MCP9808 plugged in, reads OK. ✅ Q11 Flash any device: M5Dial flashed 2026-10-30 (UTC-hour + DST fixes). MicroView retired, kept for future use.
