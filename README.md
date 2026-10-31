@@ -1,55 +1,82 @@
-# \_HouseThermo
+# 🌡️ HouseThermo: Smart Stove Thermostat
 
-Rev 10 Dec 2018 (legacy code captured Oct 2026)
+An Arduino-family thermostat that turns a heater (a gas stove) on and off. It compares the
+room temperature with a target that changes hour by hour through the day.
 
-\_HouseThermo is a simple Arduino app for turning on and off a heater based on the current
-temperature, time, a target temperature that varies hour by hour.
+Two generations live in this one repo: the original 2018 four-button MicroView unit, and
+the 2026 M5Dial with a wireless LoRa link to the stove relay.
 
-A simple Arduino app that turning on and off a heater (e.g., gas stove) based on the
-current temperature & time, versus a target temperature that varies hour by hour.
+## 🧭 Two versions, one repo
 
-Currently setup to anticipate a SparkFun MicroView Arduino, with attached DS1307 RTC,
-with Dallas DS18B20 thermometer soldered in, and a 4 button switch that enables
-temporarily (until next time period) altering the current temperature setting
+### 🎛️ [M5Dial version](m5dial/README.md) (current)
 
-## Two versions, one repo
+**Round touch screen + rotary knob, wireless relay**
 
-- **Basic 4-key version** (root `_HouseThermo.ino`): MicroView + DS1307 RTC + DS18B20,
-  four buttons.
-- **M5Dial version** ([m5dial/](m5dial/README.md)): M5Stack Dial, MCP9808, LoRa link to a
-  XIAO ESP32-S3 stove relay receiver (`m5dial/receiver/`). Merged in from
-  VashJuan/M5DialThermo with its full history (Oct 2026). Build with PlatformIO in
-  `m5dial/` and `m5dial/receiver/`.
+- M5Stack Dial (ESP32-S3) with an MCP9808 precision temperature sensor
+- LoRa link (915 MHz P2P) to a XIAO ESP32-S3 relay receiver at the stove (`m5dial/receiver/`)
+- Hour-by-hour schedule in `m5dial/data/temps.csv`; time from NTP
+- Merged in from VashJuan/M5DialThermo with its full history (Oct 2026)
 
-See [LEGACY.md](LEGACY.md) for the old code, [PLAN.md](PLAN.md) for the work plan.
+### 🔘 Basic 4-key version (retired, kept for parts)
 
-## Reference
+**SparkFun MicroView with four buttons, wired relay**
 
-- <https://learn.sparkfun.com/tutorials/microview-hookup-guide/all>
+- MicroView (ATmega328) + DS1307 real-time clock + Dallas DS18B20 thermometer
+- Four buttons to bump the target temperature up or down
+- Root `_HouseThermo.ino`. Retired Oct 2026; known bugs are listed in [PLAN.md](PLAN.md)
 
-## Visual Studio Code Build Instructions
+## 📚 Documentation
 
-- Workspace: d:/docs/john/arduino/\_HouseThermo,
-- in HouseThermo.ino, modify the year reset (or not) the Real Time Clock (Tiny RTC),
-- In Visual Studio CODE:
-  - Use Control-Shift_P to show the command palette & options Things to set:
-  - Board Type: Uno
-  - COM Port: Whatever lists FTDI next to it (setting saved in Arduino.json), since
-    Microview typically (?) shows up as FTDI
-  - ?? When Ready:
-  - Upload, which automatically compiles, and then if successful, uploads the code to the
-    Arduino, which should flicker during the upload...
+- 🏠 [User Guide](m5dial/USER_GUIDE.md): operation, LED codes, troubleshooting
+- 🔧 [Hardware Guide](m5dial/doc/HARDWARE_GUIDE.md): wiring, pins, LoRa modules
+- 🌐 [Network Guide](m5dial/NETWORK_GUIDE.md): P2P vs LoRaWAN, Wi-Fi time sync
+- 👨‍💻 [Developer Guide](m5dial/DEVELOPER_GUIDE.md): build, architecture, protocol
+- 🗺️ [PLAN.md](PLAN.md) (work order), [ROADMAP.md](ROADMAP.md) (ideas), [LEGACY.md](LEGACY.md) (old code)
 
-Verify include paths:  
-in the c_cpp_Properties.json file, verify the paths listed:
+## 🚀 Quick Start (M5Dial)
 
-I believe it only needs "C:\\Users\\John\\Documents\\Arduino\\libraries" in both upper &
-lower locations for compilation and upload and operation to succeed.
+1. Install VS Code + PlatformIO
+2. Copy `m5dial/src/secrets_template.h` to `secrets.h` (and the same in `m5dial/receiver/src/`)
+3. Build and flash both units (PlatformIO finds the COM port):
 
-However Intellisense can't locate the libraries and still lists that as a "Problem". To
-avoid that maybe requires hardcoding the full location of each library - or a tweak to how
-VS Code and/or Arduino extension handles libraries???
+   ```powershell
+   cd m5dial;          pio run -t upload; pio run -t uploadfs
+   cd receiver;        pio run -t upload
+   ```
 
-## License
+4. **Rotate the dial** to change the base temperature (0.5 °F per click, 50–90 °F)
+5. **Press the button** to reset it to the configured value
 
-Standard MIT license, copyright ©2024, VashonSoftware.com
+## 🧰 Tools
+
+- 🔍 [tools/i2c_scan](tools/i2c_scan): M5Dial I2C scanner (the MCP9808 should show at 0x18)
+- 🕰️ [tools/rtc_check](tools/rtc_check): MicroView DS1307 clock check and set
+
+## 🛡️ Safety Features
+
+- 🛡️ The receiver turns the stove OFF after 10 minutes without a command
+- 🛡️ Always starts with the heater OFF
+- 🛡️ The receiver reports the real relay state with every reply, and the Dial follows it
+- 🛡️ Watchdog timers on both units
+- 🛡️ Base temperature capped at 50–90 °F
+
+## 🔩 Hardware
+
+| Unit | Parts | About |
+| --- | --- | --- |
+| 🎛️ Dial | M5Stack Dial, MCP9808, Grove-Wio-E5 LoRa | ~$45 |
+| 🔥 Receiver | XIAO ESP32-S3, Grove-Wio-E5 LoRa, relay module | ~$30 |
+| 🔘 4-key (retired) | MicroView, DS1307 RTC, DS18B20, 4 buttons | — |
+
+## 📜 License
+
+MIT License, see [m5dial/LICENSE](m5dial/LICENSE). Copyright © 2018–2026 VashonSoftware.com
+
+## ✍️ Author
+
+**John Cornelison**  
+<john@vashonSoftware.com>
+
+---
+
+_Safe, efficient home heating control, since 2018_ 🏠🔥

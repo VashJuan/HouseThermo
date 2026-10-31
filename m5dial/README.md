@@ -18,7 +18,7 @@ troubleshooting
 - Power management
 - Basic troubleshooting
 
-### 🔧 [Hardware Guide](HARDWARE_GUIDE.md)
+### 🔧 [Hardware Guide](doc/HARDWARE_GUIDE.md)
 
 **For installation** - Pin connections, baud rates, wiring diagrams, and
 technical specifications
@@ -67,7 +67,7 @@ workflow
 
 ### Hardware Setup
 
-1. Follow [Hardware Guide](HARDWARE_GUIDE.md) for wiring
+1. Follow [Hardware Guide](doc/HARDWARE_GUIDE.md) for wiring
 2. Connect Grove-Wio-E5 modules to both devices
 3. **Current baud rate: 9600** (both devices - Grove-Wio-E5 factory default)
 4. Power on, optionally check serial monitor at 115200 baud for debug messages.
@@ -81,9 +81,9 @@ workflow
    upload' mode for these next steps (power them on while holding down their
    RESET buttons):
    ```bash
-   pio run --target upload --upload-port COM4
-   pio run --target uploadfs --upload-port COM4
-   cd receiver && pio run --target upload --upload-port COM6 ; cd ..
+   pio run --target upload
+   pio run --target uploadfs
+   cd receiver && pio run --target upload ; cd ..
    ```
 5. Power cycle both devices within a minute or so of each other. (Other
    sequences have not been tested.)
@@ -156,12 +156,12 @@ workflow
 **Auto Baud Search:** Disabled (for reliable sync)
 
 See
-[Hardware Guide - UART Configuration](HARDWARE_GUIDE.md#uartserial-baud-rate-configuration)
+[Hardware Guide - UART Configuration](doc/HARDWARE_GUIDE.md#uartserial-baud-rate-configuration)
 for details.
 
 ## Support
 
-- **Issues:** Open an issue on GitHub
+- **Issues:** Open an issue at github.com/VashJuan/HouseThermo
 - **Questions:** See documentation guides above
 - **Updates:** Check for firmware updates
 
