@@ -12,4 +12,9 @@
   (what M5Dial uses)?
 - **Q4** Hardware upgrades OK for the 4-key version (DS3231 RTC, moving the stove LED off
   pin 0)? Or should it stay on the current wiring?
+- **Q6** Can I permanently delete these? They're on disk only (not in git), but each one can
+  be rebuilt or downloaded again: `.build\` (empty), `HouseThermo\` (old 2018 clone, now
+  redundant), `legacy\2026-experiments\.venv` and `.idea`, the `.uf2` firmware,
+  `legacy\build.13Mar2019\` object files, and the duplicate library folders and zips under
+  `legacy\Older\Termo\`. I'd keep the vendor PDFs and saved pages as reference.
 - **Q5** Can I push commit `4ff70a6` (legacy capture) to the public GitHub repo?

@@ -8,7 +8,7 @@
     four buttons, stove relay on pin 3. Code is 2018–19, last edited Dec 2025.
   - **M5Dial**: `D:\Projects\Arduino\M5 Stack\thermo` → github.com/VashJuan/M5DialThermo.
     ESP32-S3, MCP9808, LoRa to a relay receiver, schedule in `data/temps.csv`. Active Jan 2026.
-- Legacy code captured in commit `4ff70a6` (see `LEGACY.md`).
+- Legacy code captured in commit `4ff70a6` and sidelined under `legacy/` (see `LEGACY.md`, ideas in `ROADMAP.md`).
 - `arduino-cli` is installed; the 4-key sketch has not been compiled since 2019.
 
 ## Review findings so far (4-key `_HouseThermo.ino`)
@@ -28,7 +28,7 @@
 ## Plan
 
 ### Phase 1: Reproducible build (4-key)
-1. Pin the libraries (the versions in `build.13Mar2019/includes.cache`) in a `sketch.yaml`
+1. Pin the libraries (the versions in `legacy/build.13Mar2019/includes.cache`) in a `sketch.yaml`
    (arduino-cli profile), or move to PlatformIO to match M5Dial.
 2. Compile the sketch as-is to get a baseline. Fix `.vscode` (board, include paths).
 
