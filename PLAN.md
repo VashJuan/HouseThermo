@@ -21,7 +21,8 @@
     repo, **not flashed yet**. COM3 (CP210x) is still unknown.
 - Builds: `m5dial` and `receiver` both build with espressif32 **pinned to 6.12.0** (8.x
   breaks them). The M5Dial app uses 87% of its 1.3 MB partition.
-- The old M5Dial clone `D:\Projects\Arduino\M5 Stack\thermo` is now superseded (not deleted).
+- The old M5Dial clone (was `D:\Projects\Arduino\M5 Stack\thermo`) is in `D:\Projects\Arduino\_ToDelete_2026-10-30\`.
+- Display/M5Dial reference: `D:\Projects\Arduino\_Reference\Displays\Displays.md`. I2C scanner: `tools/i2c_scan`.
 
 ## Review findings so far (4-key `_HouseThermo.ino`)
 

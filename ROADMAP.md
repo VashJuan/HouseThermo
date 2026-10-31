@@ -28,27 +28,14 @@ Ideas gathered from the legacy code and notes. The work order is in [PLAN.md](PL
 - Fail-safe: stove off on a sensor fault, RTC fault or watchdog reset.
 - A shared, unit-tested control core for both front-ends (see PLAN.md Phase 3).
 
-## Housekeeping: graphics and M5 reference folders (surveyed 2026-10-30)
+## Housekeeping: graphics and M5 reference folders (done 2026-10-30)
 
-About 3 GB across `D:\Projects\Arduino\LovyanGFX`, `D:\Projects\Arduino\LVGL` and
-`D:\Projects\Arduino\M5 Stack`. Almost all of it can be downloaded or rebuilt again.
+`D:\Projects\Arduino\LovyanGFX`, `D:\Projects\Arduino\LVGL` and `D:\Projects\Arduino\M5 Stack`
+(about 3 GB) were consolidated:
 
-- **Real content (keep):**
-  - `M5 Stack\LovyanGFX_font_display`: John's own repo (github.com/VashJuan/LovyanGFX_font_display),
-    clean and pushed. Only its `.pio\` build folder (574 MB) can go.
-  - Small sketches that may be John's: `M5 Stack\IC2 Scannner\` (`scan.ino`, `unifiedScan.ino`
-    + notes), `M5 Stack\m5Unified\hello\`, and `_Dial\Programming & Examples\Basic\display` and
-    `rtc` (edited 2025-12-15). Move the I2C scanner into `tools/i2c_scan` here (it helps with
-    MCP9808 checks); the rest into a scratch/sandbox folder.
-  - Reference: `_Dial\Programming & Examples\Sch_M5Dial.pdf`, the datasheet PDFs, and the `.url` links.
-- **Superseded:** `M5 Stack\thermo` (M5DialThermo clone). Its history is merged into this repo,
-  so the whole folder (507 MB, mostly `.pio\`) can go once the GitHub repo is archived (Q7).
-- **Upstream only:** `LVGL\lvgl_port_pc_visual_studio` (1.3 GB) is John's GitHub fork with no
-  commits of his own; its submodules show deleted files (a broken checkout). Delete and re-clone if needed.
-- **Downloads:** `_Dial\Programming & Examples\M5Dial-UserDemo` (292 MB), `M5Dial-Gui-Demo` (185 MB),
-  `Factory Demos`, `Volos\M5Dial-main(.zip)`, the esphome zip, `ESP32-S3FN8-Stamp3\`, and the saved
-  web pages (`*_files\` + `.html`). Keep their `.url` links instead.
-- **Notes:** `LVGL vs LovyanGFX.md` is empty (2 bytes) and appears in two folders. `LVGL\index.md`
-  is a copy of the LVGL docs. `M5 Stack\setCursor.md` and `unifiedScan\chat_history.md` are AI chat
-  transcripts. Fold anything useful into one `Displays.md` note.
-- **Target:** one `D:\Projects\Arduino\_Reference\Displays\` folder (links, PDFs, one note), under 10 MB.
+- Links (74, deduplicated), the M5Dial schematic, datasheets and notes → one folder,
+  `D:\Projects\Arduino\_Reference\Displays\` (`Displays.md`, about 4.5 MB).
+- John's font demo repo → `D:\Projects\Arduino\LovyanGFX_font_display` (build folder removed).
+- The M5Dial I2C scanner → `tools/i2c_scan` here (it never compiled before; rewritten, builds).
+- Everything else (downloads, demo repos, saved web pages, the LVGL fork and the old `thermo`
+  clone) → `D:\Projects\Arduino\_ToDelete_2026-10-30\` (2.4 GB), waiting for John to delete it.

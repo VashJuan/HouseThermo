@@ -33,8 +33,8 @@ and code architecture.
 **1. Open Workspace:**
 
 ```bash
-cd "d:\Projects\Arduino\M5 Stack\thermo"
-code __HouseThermo.code-workspace
+cd "d:\Projects\Arduino\__HouseThermo"
+code _HouseThermo.code-workspace
 ```
 
 **2. Workspace Structure:**

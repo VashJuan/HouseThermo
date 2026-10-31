@@ -30,3 +30,6 @@
 - **Q11** Can I flash the M5Dial with the repo build (DST fix)? I'd back up its current flash first.
 - ✅ Q10 MCP9808 plugged in, reads OK. ✅ Q11 Flash any device: M5Dial flashed 2026-10-30 (UTC-hour + DST fixes). MicroView retired, kept for future use.
 - **Q12** Clean up the graphics/M5 folders as listed in ROADMAP.md "Housekeeping" (about 2.9 GB to delete, all downloadable or rebuildable)? I'd move the small sketches and PDFs first and delete only after you OK it.
+- ✅ Q12 Cleanup approved and done 2026-10-30 (ROADMAP.md "Housekeeping"). The final delete was blocked for Claude, so the bulk is in `D:\Projects\Arduino\_ToDelete_2026-10-30\`.
+- **Q13** Delete `D:\Projects\Arduino\_ToDelete_2026-10-30\` (2.4 GB) yourself, or allow Claude to? `Remove-Item -LiteralPath 'D:\Projects\Arduino\_ToDelete_2026-10-30' -Recurse -Force`
+- **Q14** Delete the GitHub fork VashJuan/lv_port_pc_visual_studio (no commits of yours), or keep it?
