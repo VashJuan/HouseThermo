@@ -1,5 +1,7 @@
 {
     "board": "arduino:avr:unowifi",
     "port": "COM7",
-    "sketch": "_HouseThermo.ino"
+    "output": "../build",
+    "sketch": "_HouseThermo.ino",
+    "programmer": "AVR ISP"
 }

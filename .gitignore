@@ -1,0 +1,43 @@
+# --- Tooling / environments
+.build/
+2026/.venv/
+2026/.idea/
+
+# --- Old nested clone of this repo (2018). Its one unique sketch is saved as
+#     Archive/_HouseThermo.8Mar2018.ino.x
+HouseThermo/
+
+# --- Build output: keep only the flashed firmware and the build manifest
+build.13Mar2019/*
+!build.13Mar2019/_HouseThermo.ino.hex
+!build.13Mar2019/_HouseThermo.ino.with_bootloader.hex
+!build.13Mar2019/build.options.json
+!build.13Mar2019/includes.cache
+
+# --- Downloaded firmware, vendor archives, datasheets, saved web pages
+*.uf2
+*.zip
+*.pdf
+*.htm
+*_files/
+
+# --- Duplicate copies of third-party libraries and vendor sample bundles
+#     (still on disk; libraries are listed in LEGACY.md)
+Older/Termo/_Tiny_RTC_DS1307_DS18B20/DallasTemperature_372Beta/
+Older/Termo/_Tiny_RTC_DS1307_DS18B20/OneWire/
+Older/Termo/_Tiny_RTC_DS1307_DS18B20/rtclib-master/
+Older/Termo/_Works/_Tiny_RTC_DS1307_DS18B20/DallasTemperature_372Beta/
+Older/Termo/_Works/_Tiny_RTC_DS1307_DS18B20/OneWire/
+Older/Termo/_Works/_Tiny_RTC_DS1307_DS18B20/rtclib-master/
+Older/Termo/_Works/tinyrtc with ds12b20 temp chip/DipMicro/
+Older/Termo/_Works/tinyrtc with ds12b20 temp chip/DFRobot/DFRobot - Arduino library/
+Older/Termo/_Works/tinyrtc with ds12b20 temp chip/Hobbyist/Libraries and example code/Arduino libraries/
+Older/Termo/_Works/tinyrtc with ds12b20 temp chip/Hobbyist/Libraries and example code/I2C_Test/
+Older/Termo/_Works/tinyrtc with ds12b20 temp chip/Hobbyist/Libraries and example code/demo2uart/
+
+# --- Personal purchase records
+*order*.url
+
+# --- OS
+Thumbs.db
+.DS_Store

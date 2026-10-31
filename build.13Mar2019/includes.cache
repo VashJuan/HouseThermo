@@ -1,0 +1,87 @@
+[
+  {
+    "Sourcefile": "",
+    "Include": "",
+    "Includepath": "C:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.6.23\\cores\\arduino"
+  },
+  {
+    "Sourcefile": "",
+    "Include": "",
+    "Includepath": "C:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.6.23\\variants\\standard"
+  },
+  {
+    "Sourcefile": "d:\\docs\\John\\Arduino\\build\\sketch\\_HouseThermo.ino.cpp",
+    "Include": "TimeLib.h",
+    "Includepath": "D:\\docs\\John\\Arduino\\libraries\\Time"
+  },
+  {
+    "Sourcefile": "d:\\docs\\John\\Arduino\\build\\sketch\\_HouseThermo.ino.cpp",
+    "Include": "MicroView.h",
+    "Includepath": "D:\\docs\\John\\Arduino\\libraries\\SparkFun_MicroView\\src"
+  },
+  {
+    "Sourcefile": "d:\\docs\\John\\Arduino\\build\\sketch\\_HouseThermo.ino.cpp",
+    "Include": "OneWire.h",
+    "Includepath": "D:\\docs\\John\\Arduino\\libraries\\OneWire"
+  },
+  {
+    "Sourcefile": "d:\\docs\\John\\Arduino\\build\\sketch\\_HouseThermo.ino.cpp",
+    "Include": "DallasTemperature.h",
+    "Includepath": "D:\\docs\\John\\Arduino\\libraries\\DallasTemperature"
+  },
+  {
+    "Sourcefile": "d:\\docs\\John\\Arduino\\build\\sketch\\_HouseThermo.ino.cpp",
+    "Include": "Wire.h",
+    "Includepath": "C:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.6.23\\libraries\\Wire\\src"
+  },
+  {
+    "Sourcefile": "d:\\docs\\John\\Arduino\\build\\sketch\\_HouseThermo.ino.cpp",
+    "Include": "DS1307.h",
+    "Includepath": "D:\\docs\\John\\Arduino\\libraries\\DS1307"
+  },
+  {
+    "Sourcefile": "d:\\docs\\John\\Arduino\\build\\sketch\\_HouseThermo.ino.cpp",
+    "Include": "",
+    "Includepath": ""
+  },
+  {
+    "Sourcefile": "D:\\docs\\John\\Arduino\\libraries\\Time\\DateStrings.cpp",
+    "Include": "",
+    "Includepath": ""
+  },
+  {
+    "Sourcefile": "D:\\docs\\John\\Arduino\\libraries\\Time\\Time.cpp",
+    "Include": "",
+    "Includepath": ""
+  },
+  {
+    "Sourcefile": "D:\\docs\\John\\Arduino\\libraries\\SparkFun_MicroView\\src\\MicroView.cpp",
+    "Include": "",
+    "Includepath": ""
+  },
+  {
+    "Sourcefile": "D:\\docs\\John\\Arduino\\libraries\\OneWire\\OneWire.cpp",
+    "Include": "",
+    "Includepath": ""
+  },
+  {
+    "Sourcefile": "D:\\docs\\John\\Arduino\\libraries\\DallasTemperature\\DallasTemperature.cpp",
+    "Include": "",
+    "Includepath": ""
+  },
+  {
+    "Sourcefile": "C:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.6.23\\libraries\\Wire\\src\\Wire.cpp",
+    "Include": "",
+    "Includepath": ""
+  },
+  {
+    "Sourcefile": "C:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.6.23\\libraries\\Wire\\src\\utility\\twi.c",
+    "Include": "",
+    "Includepath": ""
+  },
+  {
+    "Sourcefile": "D:\\docs\\John\\Arduino\\libraries\\DS1307\\DS1307.cpp",
+    "Include": "",
+    "Includepath": ""
+  }
+]

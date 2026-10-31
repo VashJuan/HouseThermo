@@ -1,4 +1,4 @@
-// Sparkfun Microview & Adafdruit MCP9808 & DS1307 (w/ 18B20) RTC based thermostat
+// Sparkfun Microview & Adafruit MCP9808 & DS1307 (w/ 18B20) RTC based thermostat
 
 #define DEBUG false
 #define USE_18B20 true
@@ -41,10 +41,10 @@ const int button2Pin = A0; // MicroView pin 7!
 
 String outputString;
 
-float setTemp = 72.0; // degrees Farenheight
+float setTemp = 72.0; // degrees fahrenheit
 // To keep stove from cycling off and on too often, set a temp range
-const float minusOffset = 1.8; //Degrees farenheit below setTemp when stove goes on
-const float plusOffset = 1.8; //Degrees farenheit above setTemp when stove goes on
+const float minusOffset = 1.8; //Degrees fahrenheit below setTemp when stove goes on
+const float plusOffset = 1.8; //Degrees fahrenheit above setTemp when stove goes on
 time_t lastTransition;
 bool proceed;
 
@@ -87,8 +87,9 @@ void setup()
   // otherwise every power reset will reset the RTC back to the hardcoded date below!!!
   //#if (MANUAL_RTC_RESET)
   {
-    if(rtc[DS1307_YR]<2018)
+    if(rtc[DS1307_YR]<2018) // Change "2018" to current year to force RTC reset to following values
     { 
+
       Serial.println("RTC Clock had year as " + String(rtc[DS1307_YR]));
       Serial.println("Manually reseting RTC with hardcoded values.");
       RTC.stop();
@@ -99,6 +100,18 @@ void setup()
       RTC.set(DS1307_DATE,13);
       RTC.set(DS1307_MTH,3);
       RTC.set(DS1307_YR,19);
+
+      /* or set to compile time:
+      const char compile_date[] = __DATE__ " " __TIME__;  // e.g., "Sep 22 2013 01:19:49"
+      RTC.set(DS1307_SEC,BCD2DEC(compile_date[19])*10+BCD2DEC(compile_date[20]));
+      RTC.set(DS1307_MIN(BCD2DEC(compile_date[22])*10+BCD2DEC(compile_date[23])));
+      RTC.set(DS1307_HR(BCD2DEC(compile_date[24])*10+BCD2DEC(compile_date[25]))   
+      //RTC.set(DS1307_DOW(4); // DayOfWeek (1=Sun, 7=Sat) - need to set manually
+      RTC.set(DS1307_DATE(BCD2DEC(compile_date[4])*10+BCD2DEC(compile_date[5])));
+      RTC.set(DS1307_MTH(BCD2DEC(compile_date[0])*10+BCD2DEC(compile_date[1])));
+      RTC.set(DS1307_YR(BCD2DEC(compile_date[7])*10+BCD2DEC(compile_date[8]))
+      */
+
       RTC.start();
     }
   }
@@ -140,7 +153,6 @@ void loop()
 
     float c = oneWireSensors.getTempCByIndex(0);
     float f = c * 9.0 / 5.0 + 32.0;
-
   #endif
   
   if (DEBUG)
@@ -163,7 +175,7 @@ void loop()
       }
       Serial.println();
       
-      // Check incoming Serial for new time & date: unknown format, but CR seperated
+      // Check incoming Serial for new time & date: unknown format, but CR separated
       if (Serial.available() > 6) 
       {
         byte rr[7];
@@ -212,7 +224,7 @@ void loop()
   {
     // Hold off on any transitions for 3 minutes (180 seconds), to avoid stove rapidly turning off & on
     proceed = false;
-    outputString += "~";  //i.e., transition recently made, hold off on another
+    outputString += "~";  //i.e., transition recently made, hold off on another loop
   }
   else
   {
@@ -332,7 +344,7 @@ char BCD2DEC(char var)
   return var;
 }
 
-// Termo\_Works\tinyrtc with ds12b20 temp chip\DFRobot\DFRobot - 
+// Thermo\_Works\tinyrtc with ds12b20 temp chip\DFRobot\DFRobot - 
 // Arduino library\DS1307\examples\TinyRTC_Test_V13\TinyRTC_Test_V13.ino
 int sensorValue = 0;        // value read from the pot
 float TT=0.0;

@@ -1,6 +1,6 @@
 # \_HouseThermo
 
-Rev 10 Dec 2018
+Rev 10 Dec 2018 (legacy code captured Oct 2026)
 
 \_HouseThermo is a simple Arduino app for turning on and off a heater based on the current
 temperature, time, a target temperature that varies hour by hour.
@@ -8,9 +8,21 @@ temperature, time, a target temperature that varies hour by hour.
 A simple Arduino app that turning on and off a heater (e.g., gas stove) based on the
 current temperature & time, versus a target temperature that varies hour by hour.
 
-Currently setup to anticipate an Adafruit MicroView Ardunio, with attached DS1307 RTC,
+Currently setup to anticipate a SparkFun MicroView Arduino, with attached DS1307 RTC,
 with Dallas DS18B20 thermometer soldered in, and a 4 button switch that enables
 temporarily (until next time period) altering the current temperature setting
+
+## Two versions
+
+- **Basic 4-key version** (this repo): MicroView + DS1307 RTC + DS18B20, four buttons.
+- **M5Dial version**: [VashJuan/M5DialThermo](https://github.com/VashJuan/M5DialThermo)
+  (M5Stack Dial, MCP9808, LoRa link to a stove relay receiver).
+
+See [LEGACY.md](LEGACY.md) for what each folder holds.
+
+## Reference
+
+- <https://learn.sparkfun.com/tutorials/microview-hookup-guide/all>
 
 ## Visual Studio Code Build Instructions
 
@@ -31,7 +43,7 @@ in the c_cpp_Properties.json file, verify the paths listed:
 I believe it only needs "C:\\Users\\John\\Documents\\Arduino\\libraries" in both upper &
 lower locations for compilation and upload and operation to succeed.
 
-However Intellisense can't locate the libraires and still lists that as a "Problem". To
+However Intellisense can't locate the libraries and still lists that as a "Problem". To
 avoid that maybe requires hardcoding the full location of each library - or a tweak to how
 VS Code and/or Arduino extension handles libraries???
 

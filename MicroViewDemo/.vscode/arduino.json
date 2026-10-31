@@ -1,0 +1,5 @@
+{
+    "sketch": "MicroViewDemo.ino",
+    "port": "COM9",
+    "board": "arduino:avr:uno"
+}
