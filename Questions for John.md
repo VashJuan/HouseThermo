@@ -36,3 +36,5 @@
 - ✅ Q13 John deleted `_ToDelete_2026-10-30` 2026-10-30.
 - **Q15** GitHub deletes (Q7: M5DialThermo, Q14: lv_port_pc_visual_studio fork) need the `delete_repo` scope. Run `gh auth refresh -h github.com -s delete_repo` (opens a browser), then tell Claude to go, or run `gh repo delete VashJuan/M5DialThermo --yes` and `gh repo delete VashJuan/lv_port_pc_visual_studio --yes` yourself.
 - **Q16** Plug in the M5Dial (it wasn't on USB 2026-10-30) so Claude can run the I2C scan and flash the relay-state fix.
+- ✅ Q7 John deleted GitHub VashJuan/M5DialThermo 2026-10-30. ✅ Q16 M5Dial plugged in; flashed and bench tested.
+- **Q17** OFF bench test: when the Dial shows ON, turn the dial below the room temperature (about 66 °F) and leave it plugged in for 4 minutes. Tell Claude when you've done it.

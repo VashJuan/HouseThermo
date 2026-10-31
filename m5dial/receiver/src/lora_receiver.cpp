@@ -653,8 +653,9 @@ String LoRaReceiver::readResponse(int timeout) {
                     continue;
                 }
                 // For RX commands, must wait for RX DONE or received data after the echo
-                // RX window can be long at SF12, wait up to 11 seconds
-                if (response.indexOf("RXLRPKT") >= 0 && response.indexOf("RX DONE") < 0 && response.indexOf("RXLRPKT,") < 0 && silenceTime < 11000) {
+                // RX window can be long at SF12, wait up to 11 seconds (the Wio-E5 sends no
+                // "RX DONE", so a received packet line ends the wait)
+                if (response.indexOf("RXLRPKT") >= 0 && response.indexOf("RX DONE") < 0 && response.indexOf("RXLRPKT,") < 0 && response.indexOf("+TEST: RX \"") < 0 && silenceTime < 11000) {
                     // Keep waiting for RX DONE or received message data
                     delay(10);
                     continue;

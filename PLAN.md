@@ -69,9 +69,17 @@
   (`turnOn` expected `STOVE_ON`). So the relay went ON while the Dial stayed at OFF and never
   sent OFF. Status replies (`STOVE_ON_ACK`) were never matched either. Now the receiver answers
   every command with `STOVE_ON_ACK`/`STOVE_OFF_ACK`, and `Stove::applyRemoteState()` adopts
-  that state (plain `ACK` is still accepted from old firmware). Receiver flashed (COM11).
-  **Next:** plug in the M5Dial, run `tools/i2c_scan` (expect 0x18), flash `m5dial`, then
-  bench test: warm the sensor above the target and confirm the receiver logs `STOVE_OFF`.
+  that state (plain `ACK` is still accepted from old firmware).
+- Bench tests 2026-10-30, both units flashed (Dial COM13, receiver COM11): `i2c_scan` found the
+  MCP9808 at 0x18. Two more link bugs were found and fixed: (a) a failed LoRaWAN fallback left the
+  Wio-E5 out of TEST mode, so P2P died for good (ERROR(-12)); `switchMode()` now restores P2P.
+  (b) Both sides waited up to 11 s for an "RX DONE" the Wio-E5 never sends, so about half
+  the replies arrived after the Dial stopped listening; a `+TEST: RX "` line now ends the wait.
+  After the fixes: 15/15 round trips (~5.5 s each); ON confirmed end to end. The receiver's 10-min
+  safety timeout also turned the relay OFF on its own while the link was down.
+  **Next:** OFF test. Wait for ON, then turn the dial below the room temperature and confirm the
+  receiver logs `Command executed: Stove turned OFF`. Logging tool:
+  `dual_log.py` (both COM ports, timestamped); recreate it if the scratchpad is gone.
 - Fixed + flashed 2026-10-30: the schedule used the UTC hour (7–8 h early) → `RTC::getHour()`
   and `getDayOfWeek()` use local time now; hour 0 → the "24 = Midnight" row; DST timezone default.
 - The device's SPIFFS `temps.csv` (base 74 °F) differs from the repo (77 °F). It's in the full
