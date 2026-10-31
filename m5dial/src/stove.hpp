@@ -248,6 +248,14 @@ public:
     String sendLoRaCommand(const String &command);
 
     /**
+     * @brief Adopt the relay state reported by the receiver
+     * @param response Receiver reply (STOVE_ON_ACK / STOVE_OFF_ACK, or plain ACK from older receivers)
+     * @param commanded State that was commanded (used only for a plain ACK)
+     * @return true if the reply told us the relay state
+     */
+    bool applyRemoteState(const String &response, StoveState commanded);
+
+    /**
      * @brief Update remote stove status via LoRa
      * @return Status string for display
      */

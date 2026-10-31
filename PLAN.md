@@ -64,10 +64,14 @@
 
 ### Next session: M5Dial first (MicroView retired 2026-10-30, kept for future projects)
 
-- **FIRST, safety:** the receiver reports its relay ON (`STOVE_ON_ACK`) while the Dial says
-  OFF (77.6 °F vs a 74 °F target). The Dial ignores the status reply, so it never sends OFF.
-  Make the Dial reconcile with the receiver's reported state. Do this before anything is
-  wired to the stove.
+- **Relay-state fix (2026-10-30), code done; the Dial is NOT flashed yet:** the receiver
+  answered ON/OFF with `ACK`, which the Dial rejected (`isValidResponse`) and also didn't match
+  (`turnOn` expected `STOVE_ON`). So the relay went ON while the Dial stayed at OFF and never
+  sent OFF. Status replies (`STOVE_ON_ACK`) were never matched either. Now the receiver answers
+  every command with `STOVE_ON_ACK`/`STOVE_OFF_ACK`, and `Stove::applyRemoteState()` adopts
+  that state (plain `ACK` is still accepted from old firmware). Receiver flashed (COM11).
+  **Next:** plug in the M5Dial, run `tools/i2c_scan` (expect 0x18), flash `m5dial`, then
+  bench test: warm the sensor above the target and confirm the receiver logs `STOVE_OFF`.
 - Fixed + flashed 2026-10-30: the schedule used the UTC hour (7–8 h early) → `RTC::getHour()`
   and `getDayOfWeek()` use local time now; hour 0 → the "24 = Midnight" row; DST timezone default.
 - The device's SPIFFS `temps.csv` (base 74 °F) differs from the repo (77 °F). It's in the full

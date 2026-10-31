@@ -159,20 +159,17 @@ void loop() {
             commandSuccess = true;
             
         } else if (command.equalsIgnoreCase("STATUS_REQUEST")) {
-            // Send back current status with ACK in one message
-            String status = stoveRelay.isOn() ? "STOVE_ON_ACK" : "STOVE_OFF_ACK";
-            loraReceiver.sendResponse(status);
             commandSuccess = true;
-            // Don't send separate ACK for status requests - status response includes ACK
-            
+
         } else {
             Serial.printf("Unknown command received: %s\n", command.c_str());
             loraReceiver.sendResponse("ERROR_UNKNOWN_COMMAND");
         }
-        
-        // Send acknowledgment for commands other than STATUS_REQUEST
-        if (commandSuccess && !command.equalsIgnoreCase("STATUS_REQUEST")) {
-            loraReceiver.sendResponse("ACK");
+
+        // Every valid command is answered with the relay's actual state, so the
+        // Dial can always resync (it treats this reply as the truth)
+        if (commandSuccess) {
+            loraReceiver.sendResponse(stoveRelay.isOn() ? RESP_STOVE_ON_ACK : RESP_STOVE_OFF_ACK);
         }
     }
     

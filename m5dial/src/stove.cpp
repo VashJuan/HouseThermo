@@ -228,9 +228,8 @@ void Stove::setRelayState(bool on)
         String response = sendLoRaCommand(command);
 
         // Update state based on response
-        if (response == RESP_STOVE_ON_ACK || response == RESP_STOVE_OFF_ACK)
+        if (applyRemoteState(response, on ? STOVE_ON : STOVE_OFF))
         {
-            currentState = on ? STOVE_ON : STOVE_OFF;
             lastStateChange = millis();
             Serial.printf("Relay command successful: %s\n", response.c_str());
         }
@@ -363,11 +362,16 @@ String Stove::turnOn()
     statusDisplayText = "Sending ON command...";
     String response = sendLoRaCommand(CMD_STOVE_ON);
 
-    if (response == RESP_STOVE_ON)
+    if (applyRemoteState(response, STOVE_ON))
     {
-        currentState = STOVE_ON;
         lastCommandedState = STOVE_ON;
         lastStateChange = millis();
+        if (currentState != STOVE_ON)
+        {
+            statusDisplayText = "ON refused (relay OFF)";
+            Serial.println("Stove: ON sent but receiver reports relay OFF");
+            return statusDisplayText;
+        }
         statusDisplayText = "ON (LoRa)";
         Serial.println("Stove: Remote turned ON");
         return "Remote turned ON";
@@ -398,11 +402,16 @@ String Stove::turnOff()
     statusDisplayText = "Sending OFF command...";
     String response = sendLoRaCommand(CMD_STOVE_OFF);
 
-    if (response == RESP_STOVE_OFF)
+    if (applyRemoteState(response, STOVE_OFF))
     {
-        currentState = STOVE_OFF;
         lastCommandedState = STOVE_OFF;
         lastStateChange = millis();
+        if (currentState != STOVE_OFF)
+        {
+            statusDisplayText = "OFF failed (relay ON)";
+            Serial.println("Stove: OFF sent but receiver reports relay still ON");
+            return statusDisplayText;
+        }
         statusDisplayText = "OFF (LoRa)";
         Serial.println("Stove: Remote turned OFF");
         return "Remote turned OFF";
@@ -686,6 +695,35 @@ String Stove::sendLoRaCommand(const String &command)
     return response;
 }
 
+bool Stove::applyRemoteState(const String &response, StoveState commanded)
+{
+    StoveState reported;
+    if (response == RESP_STOVE_ON_ACK)
+    {
+        reported = STOVE_ON;
+    }
+    else if (response == RESP_STOVE_OFF_ACK)
+    {
+        reported = STOVE_OFF;
+    }
+    else if (response == RESP_ACK && (commanded == STOVE_ON || commanded == STOVE_OFF))
+    {
+        reported = commanded; // older receiver firmware: plain ACK, no state
+    }
+    else
+    {
+        return false;
+    }
+
+    if (reported != currentState)
+    {
+        Serial.printf("Stove: receiver reports relay %s, Dial had %s; resyncing\n",
+                      reported == STOVE_ON ? "ON" : "OFF", getStateString().c_str());
+    }
+    currentState = reported;
+    return true;
+}
+
 String Stove::updateRemoteStatus()
 {
     if (!loraControlEnabled || !loraTransmitter)
@@ -700,15 +738,9 @@ String Stove::updateRemoteStatus()
         statusDisplayText = "Getting status...";
         String response = sendLoRaCommand(CMD_STATUS_REQUEST);
 
-        if (response == RESP_STOVE_ON)
+        if (applyRemoteState(response, currentState))
         {
-            currentState = STOVE_ON;
-            statusDisplayText = "ON (Remote)";
-        }
-        else if (response == RESP_STOVE_OFF)
-        {
-            currentState = STOVE_OFF;
-            statusDisplayText = "OFF (Remote)";
+            statusDisplayText = (currentState == STOVE_ON) ? "ON (Remote)" : "OFF (Remote)";
         }
         else if (response == "TIMEOUT")
         {

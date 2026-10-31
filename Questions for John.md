@@ -33,3 +33,6 @@
 - ✅ Q12 Cleanup approved and done 2026-10-30 (ROADMAP.md "Housekeeping"). The final delete was blocked for Claude, so the bulk is in `D:\Projects\Arduino\_ToDelete_2026-10-30\`.
 - **Q13** Delete `D:\Projects\Arduino\_ToDelete_2026-10-30\` (2.4 GB) yourself, or allow Claude to? `Remove-Item -LiteralPath 'D:\Projects\Arduino\_ToDelete_2026-10-30' -Recurse -Force`
 - **Q14** Delete the GitHub fork VashJuan/lv_port_pc_visual_studio (no commits of yours), or keep it?
+- ✅ Q13 John deleted `_ToDelete_2026-10-30` 2026-10-30.
+- **Q15** GitHub deletes (Q7: M5DialThermo, Q14: lv_port_pc_visual_studio fork) need the `delete_repo` scope. Run `gh auth refresh -h github.com -s delete_repo` (opens a browser), then tell Claude to go, or run `gh repo delete VashJuan/M5DialThermo --yes` and `gh repo delete VashJuan/lv_port_pc_visual_studio --yes` yourself.
+- **Q16** Plug in the M5Dial (it wasn't on USB 2026-10-30) so Claude can run the I2C scan and flash the relay-state fix.

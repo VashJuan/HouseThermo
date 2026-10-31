@@ -176,7 +176,7 @@ public:
      */
     static bool isValidResponse(const String &response)
     {
-        return (response == RESP_STOVE_ON_ACK || response == RESP_STOVE_OFF_ACK ||
+        return (response == RESP_STOVE_ON_ACK || response == RESP_STOVE_OFF_ACK || response == RESP_ACK ||
                 response == RESP_PONG || response == RESP_STATUS ||
                 response.startsWith("STATUS:") || response == "SENT");
     }
