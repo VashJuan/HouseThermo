@@ -16,7 +16,7 @@ RTC rtc;
 
 // Default configuration constants
 // WiFi credentials are now defined in secrets.h
-static const char *DEFAULT_NTP_TIMEZONE = "PST8";
+static const char *DEFAULT_NTP_TIMEZONE = "PST8PDT,M3.2.0,M11.1.0"; // US Pacific with DST
 static const char *DEFAULT_NTP_SERVER1 = "time.nist.gov";
 static const char *DEFAULT_NTP_SERVER2 = "pool.ntp.org";
 static const char *DEFAULT_NTP_SERVER3 = "0.pool.ntp.org";

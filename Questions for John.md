@@ -25,3 +25,6 @@
 - **Q7** Archive the old GitHub repo VashJuan/M5DialThermo (read-only), with a README line pointing here?
 - **Q8** The MicroView clock reads 1/1/00. Can you check or replace the RTC coin cell (CR2032 / LIR2032)?
 - **Q9** What is on COM3 (Silicon Labs CP210x)? Is the M5Dial on a data cable?
+- ✅ Q8 Cell replaced 2026-10-30; RTC set and running.
+- **Q10** The M5Dial's MCP9808 doesn't answer on I2C (999 °F). Is it plugged in, and is the Grove cable OK?
+- **Q11** Can I flash the M5Dial with the repo build (DST fix)? I'd back up its current flash first.

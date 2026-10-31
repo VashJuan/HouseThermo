@@ -41,3 +41,6 @@ legacy/Older/Termo/_Works/tinyrtc with ds12b20 temp chip/Hobbyist/Libraries and 
 # --- OS
 Thumbs.db
 .DS_Store
+
+# --- PlatformIO
+.pio/

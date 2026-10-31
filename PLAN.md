@@ -10,11 +10,15 @@
 - Legacy code sidelined under `legacy/` (see `LEGACY.md`, ideas in `ROADMAP.md`).
 - Decisions (2026-10-30): one repo; PlatformIO for everything; hardware changes OK.
 - Nothing is attached to the stove. On USB, 2026-10-30:
-  - MicroView = COM12 (FTDI). It runs a **DEBUG build not in the repo** (set 78 °F). The
-    sensor reads fine; **the RTC reads 0:00:00 1/1/00** (dead coin cell or no I2C).
+  - MicroView = COM12 (FTDI). It runs a **DEBUG build not in the repo** (set 78 °F), backed
+    up to `legacy/microview-firmware-backup/`. The DS18B20 on the RTC board reads fine.
+    The RTC was halted (dead cell): John replaced the cell, and `tools/rtc_check` set and
+    started it. The original firmware was restored, and the time is correct.
   - Receiver = COM11 (XIAO ESP32-S3). It runs the current `m5dial/receiver` code, LoRa
     915 MHz P2P OK.
-  - M5Dial: powered on, but not seen as an ESP32-S3 on USB (COM3 is an unknown CP210x).
+  - M5Dial = COM13 (after a cable swap). NTP time OK, but the **MCP9808 isn't answering on
+    I2C** (reads 999 °F). The timezone was `PST8` (no DST, an hour off in summer): fixed in the
+    repo, **not flashed yet**. COM3 (CP210x) is still unknown.
 - Builds: `m5dial` and `receiver` both build with espressif32 **pinned to 6.12.0** (8.x
   breaks them). The M5Dial app uses 87% of its 1.3 MB partition.
 - The old M5Dial clone `D:\Projects\Arduino\M5 Stack\thermo` is now superseded (not deleted).
