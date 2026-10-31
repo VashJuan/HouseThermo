@@ -993,11 +993,16 @@ bool LoRaTransmitter::switchMode(LoRaCommunicationMode mode)
         Serial.printf("Successfully switched to %s mode\n", 
                       mode == LoRaCommunicationMode::P2P ? "P2P" : "LoRaWAN");
     } else {
-        lastError = "Failed to switch to " + 
+        lastError = "Failed to switch to " +
                    (mode == LoRaCommunicationMode::P2P ? String("P2P") : String("LoRaWAN")) + " mode";
         Serial.println(lastError);
+        // A half-done switch leaves the module out of TEST mode (every TXLRPKT then
+        // fails with ERROR(-12)), so put it back in the mode we were using
+        if (currentMode == LoRaCommunicationMode::P2P && !configureP2P()) {
+            Serial.println("Failed to restore P2P mode");
+        }
     }
-    
+
     return success;
 }
 

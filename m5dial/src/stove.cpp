@@ -715,10 +715,10 @@ bool Stove::applyRemoteState(const String &response, StoveState commanded)
         return false;
     }
 
-    if (reported != currentState)
+    if (reported != commanded)
     {
-        Serial.printf("Stove: receiver reports relay %s, Dial had %s; resyncing\n",
-                      reported == STOVE_ON ? "ON" : "OFF", getStateString().c_str());
+        Serial.printf("Stove: receiver reports relay %s, expected %s; resyncing\n",
+                      reported == STOVE_ON ? "ON" : "OFF", commanded == STOVE_ON ? "ON" : "OFF");
     }
     currentState = reported;
     return true;
