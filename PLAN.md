@@ -2,14 +2,22 @@
 
 ## Current state (2026-10-30)
 
-- Two versions of the same thermostat:
-  - **Basic 4-key**: this repo, `D:\Projects\Arduino\__HouseThermo` →
-    github.com/VashJuan/HouseThermo. MicroView (ATmega328, 2 KB RAM), DS1307 RTC + DS18B20,
-    four buttons, stove relay on pin 3. Code is 2018–19, last edited Dec 2025.
-  - **M5Dial**: `D:\Projects\Arduino\M5 Stack\thermo` → github.com/VashJuan/M5DialThermo.
-    ESP32-S3, MCP9808, LoRa to a relay receiver, schedule in `data/temps.csv`. Active Jan 2026.
-- Legacy code captured in commit `4ff70a6` and sidelined under `legacy/` (see `LEGACY.md`, ideas in `ROADMAP.md`).
-- `arduino-cli` is installed; the 4-key sketch has not been compiled since 2019.
+- One repo, `D:\Projects\Arduino\__HouseThermo` → github.com/VashJuan/HouseThermo, two versions:
+  - **Basic 4-key**: root `_HouseThermo.ino`. MicroView (ATmega328, 2 KB RAM), DS1307 RTC +
+    DS18B20, four buttons, stove relay on pin 3. Code is 2018–19, last edited Dec 2025.
+  - **M5Dial**: `m5dial/` (merged from M5DialThermo with history). ESP32-S3, MCP9808, LoRa to
+    the XIAO relay receiver in `m5dial/receiver/`, schedule in `m5dial/data/temps.csv`.
+- Legacy code sidelined under `legacy/` (see `LEGACY.md`, ideas in `ROADMAP.md`).
+- Decisions (2026-10-30): one repo; PlatformIO for everything; hardware changes OK.
+- Nothing is attached to the stove. On USB, 2026-10-30:
+  - MicroView = COM12 (FTDI). It runs a **DEBUG build not in the repo** (set 78 °F). The
+    sensor reads fine; **the RTC reads 0:00:00 1/1/00** (dead coin cell or no I2C).
+  - Receiver = COM11 (XIAO ESP32-S3). It runs the current `m5dial/receiver` code, LoRa
+    915 MHz P2P OK.
+  - M5Dial: powered on, but not seen as an ESP32-S3 on USB (COM3 is an unknown CP210x).
+- Builds: `m5dial` and `receiver` both build with espressif32 **pinned to 6.12.0** (8.x
+  breaks them). The M5Dial app uses 87% of its 1.3 MB partition.
+- The old M5Dial clone `D:\Projects\Arduino\M5 Stack\thermo` is now superseded (not deleted).
 
 ## Review findings so far (4-key `_HouseThermo.ino`)
 
@@ -29,7 +37,7 @@
 
 ### Phase 1: Reproducible build (4-key)
 1. Pin the libraries (the versions in `legacy/build.13Mar2019/includes.cache`) in a `sketch.yaml`
-   (arduino-cli profile), or move to PlatformIO to match M5Dial.
+   (arduino-cli profile), → decided: PlatformIO, as a `microview/` project beside `m5dial/`.
 2. Compile the sketch as-is to get a baseline. Fix `.vscode` (board, include paths).
 
 ### Phase 2: Fix the bugs (4-key)
@@ -50,7 +58,11 @@
 9. Add the watchdog (`avr/wdt.h`) and make the stove fail off on any fault.
 
 ### Phase 5: M5Dial review
-10. Run the same review on M5DialThermo (it's newer and bigger: ~200 KB of source and docs),
-    and check that it doesn't carry over bugs #2, #3 and #6.
+10. Run the same review on `m5dial/` (it's newer and bigger: ~200 KB of source and docs),
+    and check that it doesn't carry over bugs #2, #3 and #6. Known so far: the receiver logs
+    "Auto low power mode enabled" even when `AT+LOWPOWER` returns `ERROR(-1)`
+    (`m5dial/receiver/src/receiver_main.cpp:108`). Flash is at 87%.
+11. Port to espressif32 6.12 → current (Arduino core 3) later: `esp_task_wdt_init` takes a
+    config struct now, and `sntp_stop` is gone (`m5dial/src/_thermo.cpp:201`, `m5dial/src/rtc.cpp:175`).
 
 Open decisions are in `Questions for John.md`.

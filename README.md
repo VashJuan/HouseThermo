@@ -12,13 +12,16 @@ Currently setup to anticipate a SparkFun MicroView Arduino, with attached DS1307
 with Dallas DS18B20 thermometer soldered in, and a 4 button switch that enables
 temporarily (until next time period) altering the current temperature setting
 
-## Two versions
+## Two versions, one repo
 
-- **Basic 4-key version** (this repo): MicroView + DS1307 RTC + DS18B20, four buttons.
-- **M5Dial version**: [VashJuan/M5DialThermo](https://github.com/VashJuan/M5DialThermo)
-  (M5Stack Dial, MCP9808, LoRa link to a stove relay receiver).
+- **Basic 4-key version** (root `_HouseThermo.ino`): MicroView + DS1307 RTC + DS18B20,
+  four buttons.
+- **M5Dial version** ([m5dial/](m5dial/README.md)): M5Stack Dial, MCP9808, LoRa link to a
+  XIAO ESP32-S3 stove relay receiver (`m5dial/receiver/`). Merged in from
+  VashJuan/M5DialThermo with its full history (Oct 2026). Build with PlatformIO in
+  `m5dial/` and `m5dial/receiver/`.
 
-See [LEGACY.md](LEGACY.md) for what each folder holds.
+See [LEGACY.md](LEGACY.md) for the old code, [PLAN.md](PLAN.md) for the work plan.
 
 ## Reference
 

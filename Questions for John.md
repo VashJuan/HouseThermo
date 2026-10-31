@@ -18,3 +18,10 @@
   `legacy\build.13Mar2019\` object files, and the duplicate library folders and zips under
   `legacy\Older\Termo\`. I'd keep the vendor PDFs and saved pages as reference.
 - **Q5** Can I push commit `4ff70a6` (legacy capture) to the public GitHub repo?
+
+## Answered 2026-10-30
+
+- ✅ Q1 Nothing on the stove. All 3 boards on USB. ✅ Q2 Collapse into one repo (done: m5dial/). ✅ Q3 PlatformIO. ✅ Q4 Hardware changes OK. ✅ Q5 Pushed. ✅ Q6 Junk deleted.
+- **Q7** Archive the old GitHub repo VashJuan/M5DialThermo (read-only), with a README line pointing here?
+- **Q8** The MicroView clock reads 1/1/00. Can you check or replace the RTC coin cell (CR2032 / LIR2032)?
+- **Q9** What is on COM3 (Silicon Labs CP210x)? Is the M5Dial on a data cable?
